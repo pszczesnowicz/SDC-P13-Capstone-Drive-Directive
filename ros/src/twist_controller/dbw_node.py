@@ -53,12 +53,38 @@ class DBWNode(object):
         self.brake_pub = rospy.Publisher('/vehicle/brake_cmd',
                                          BrakeCmd, queue_size=1)
 
-        # TODO: Create `TwistController` object
-        # self.controller = TwistController(<Arguments you wish to provide>)
+        self.controller = Controller(
+            wheel_base,
+            steer_ratio,
+            max_lat_accel,
+            max_steer_angle,
+            wheel_radius,
+            vehicle_mass,
+            brake_deadband,
+            decel_limit,
+            accel_limit,
+        )
 
-        # TODO: Subscribe to all the topics you need to
+        self.prop_linear_velocity = None
+        self.prop_angular_velocity = None
+        self.cur_velocity = None
+        self.dbw_enabled = False
+
+        rospy.Subscriber('/current_velocity', TwistStamped, self.cur_vel_cb)
+        rospy.Subscriber('/twist_cmd', TwistStamped, self.twist_cmd_cb)
+        rospy.Subscriber('/vehicle/dbw_enabled', Bool, self.dbw_enabled_cb)
 
         self.loop()
+
+    def cur_vel_cb(self, vel):
+        self.cur_velocity = vel
+
+    def twist_cmd_cb(self, cmd):
+        self.prop_linear_velocity = cmd.twist.linear
+        self.prop_angular_velocity = cmd.twist.angular
+
+    def dbw_enabled_cb(self, msg):
+        self.dbw_enabled = msg.data
 
     def loop(self):
         rate = rospy.Rate(50) # 50Hz
@@ -72,6 +98,15 @@ class DBWNode(object):
             #                                                     <any other argument you need>)
             # if <dbw is enabled>:
             #   self.publish(throttle, brake, steer)
+            throttle, brake, steering = self.controller.control(
+                self.prop_linear_velocity,
+                self.prop_angular_velocity,
+                self.cur_velocity,
+                self.dbw_enabled,
+                self.fuel_capacity,
+            )
+            if self.dbw_enabled:
+                self.publish(throttle, brake, steering)
             rate.sleep()
 
     def publish(self, throttle, brake, steer):
