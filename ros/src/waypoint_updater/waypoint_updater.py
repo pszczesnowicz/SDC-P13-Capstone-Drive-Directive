@@ -23,7 +23,7 @@ TODO (for Yousuf and Aaron): Stopline location for each traffic light.
 '''
 
 LOOKAHEAD_WPS = 200 # Number of waypoints we will publish. You can change this number
-SLOWDOWN_WPS = 10 # Number of waypoints starting to slow down to stop
+SLOWDOWN_WPS = 15 # Number of waypoints starting to slow down to stop
 MPH2MPS = 0.44704
 SPEED = 15 * MPH2MPS
 
@@ -96,37 +96,21 @@ class WaypointUpdater(object):
             idx = get_closest_waypoint(self.cur_pos, self.base_waypoints)
             # get look ahead waypoints
             points = get_next_waypoints(self.base_waypoints, idx, LOOKAHEAD_WPS)
-            rospy.loginfo("pos_cb: %s, points:%s, cur_pos:%s", idx, len(points), self.cur_pos)
+            # rospy.logerr("pos_cb: %s, points:%s, cur_pos:%s", idx, len(points), self.cur_pos)
             slowdown_index = None
-            delta = 0
+
             if self.traffic_waypt_index != None and self.traffic_waypt_index >= idx:
-                slowdown_index = max(self.traffic_waypt_index - SLOWDOWN_WPS - idx, 0)
-                count = max(self.traffic_waypt_index - slowdown_index, 0)
-                if count != 0:
-                    delta = SPEED / count
-                else:
-                    delta = SPEED
-                slowdown_end = slowdown_index + count
-                rospy.loginfo("idx: %s, traffic_idx:%s, slowdown_idx:%s, end:%s, delta:%s, count:%s", idx, self.traffic_waypt_index, slowdown_index, slowdown_end, delta, count)
+                slowdown_index = max(self.traffic_waypt_index - SLOWDOWN_WPS, 0)
+                slowdown_end = self.traffic_waypt_index
+                # rospy.logerr("idx: %s, traffic_idx:%s, slowdown_idx:%s, end:%s", idx, self.traffic_waypt_index, slowdown_index, slowdown_end)
             # set speed
-            i = 0
-            slowness = SPEED
+            # slowness = SPEED not needed?
             for pt in points:
-                if slowdown_index != None :
-                    if i < slowdown_index or i > slowdown_end:
+                if slowdown_index != None:
+                    if idx < slowdown_index or idx > slowdown_end:
                         pt.twist.twist.linear.x = SPEED
                     else:
                         pt.twist.twist.linear.x = 0
-                    #elif i >=  slowdown_index and i < slowdown_end:
-                    #   pt.twist.twist.linear.x = slowness
-                    #   slowness -= delta
-                    #elif i <  self.traffic_waypt_index + 1:
-                    #   pt.twist.twist.linear.x = 0
-                    #   slowness = 0
-                    #else:
-                    #   slowness += SPEED / 10
-                    #   pt.twist.twist.linear.x = max(SPEED, slowness)
-                    i += 1
                 else:
                     pt.twist.twist.linear.x = SPEED
                 #rospy.loginfo("  x:%s, y:%s", pt.pose.pose.position.x, pt.pose.pose.position.y)
@@ -140,7 +124,7 @@ class WaypointUpdater(object):
 
     def traffic_cb(self, msg):
         self.traffic_waypt_index = msg.data
-        rospy.loginfo("traffic waypt_index:%s", msg.data)
+        # rospy.logerr("traffic waypt_index:%s", msg.data)
         if (self.traffic_waypt_index < 0):
             self.traffic_waypt_index = None
 
