@@ -47,9 +47,11 @@ class Controller(object):
                 #rospy.loginfo(" error:%s, throttle:%s, brake:%s, accel:%s, self.brake_deadband:%s", error, throttle, brake, accel, self.brake_deadband);
             else:
                 brake = 0
-            steer = self.yaw_controller.get_steering(linear_velocity.x,
-                                                     angular_velocity.z,
-                                                     current_velocity.twist.linear.x)
+            steer = self.yaw_controller.get_steering(
+                linear_velocity.x,
+                angular_velocity.z,
+                current_velocity.twist.linear.x
+            )
             return throttle, brake, steer
         else:
             self.pid.reset()
