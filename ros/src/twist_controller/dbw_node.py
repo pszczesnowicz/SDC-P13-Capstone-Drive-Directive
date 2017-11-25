@@ -53,18 +53,16 @@ class DBWNode(object):
         self.brake_pub = rospy.Publisher('/vehicle/brake_cmd',
                                          BrakeCmd, queue_size=1)
 
-        self.controller = Controller(
-            wheel_base,
-            steer_ratio,
-            max_lat_accel,
-            max_steer_angle,
-            wheel_radius,
-            vehicle_mass,
-            brake_deadband,
-            decel_limit,
-            accel_limit,
-        )
-
+        self.controller = Controller(wheel_base,
+                                     steer_ratio,
+                                     max_lat_accel,
+                                     max_steer_angle,
+                                     wheel_radius,
+                                     vehicle_mass,
+                                     brake_deadband,
+                                     decel_limit,
+                                     accel_limit,
+                                     fuel_capacity)
         self.prop_linear_velocity = None
         self.prop_angular_velocity = None
         self.cur_velocity = None
@@ -98,13 +96,10 @@ class DBWNode(object):
             #                                                     <any other argument you need>)
             # if <dbw is enabled>:
             #   self.publish(throttle, brake, steer)
-            throttle, brake, steering = self.controller.control(
-                self.prop_linear_velocity,
-                self.prop_angular_velocity,
-                self.cur_velocity,
-                self.dbw_enabled,
-                self.fuel_capacity,
-            )
+            throttle, brake, steering = self.controller.control(self.prop_linear_velocity,
+                                                                self.prop_angular_velocity,
+                                                                self.cur_velocity,
+                                                                self.dbw_enabled)
             if self.dbw_enabled:
                 self.publish(throttle, brake, steering)
             rate.sleep()
