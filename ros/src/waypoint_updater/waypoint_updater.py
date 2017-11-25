@@ -23,7 +23,7 @@ TODO (for Yousuf and Aaron): Stopline location for each traffic light.
 '''
 
 LOOKAHEAD_WPS = 200 # Number of waypoints we will publish. You can change this number
-SLOWDOWN_WPS = 15 # Number of waypoints starting to slow down to stop
+SLOWDOWN_WPS = 10 # Number of waypoints starting to slow down to stop
 MPH2MPS = 0.44704
 SPEED = 15 * MPH2MPS
 
@@ -102,9 +102,8 @@ class WaypointUpdater(object):
             if self.traffic_waypt_index != None and self.traffic_waypt_index >= idx:
                 slowdown_index = max(self.traffic_waypt_index - SLOWDOWN_WPS, 0)
                 slowdown_end = self.traffic_waypt_index
-                rospy.logerr("idx: %s, traffic_idx:%s, slowdown_idx:%s, end:%s", idx, self.traffic_waypt_index, slowdown_index, slowdown_end)
+                # rospy.logerr("idx: %s, traffic_idx:%s, slowdown_idx:%s, end:%s", idx, self.traffic_waypt_index, slowdown_index, slowdown_end)
             # set speed
-            # slowness = SPEED not needed?
             for pt in points:
                 if slowdown_index != None:
                     if idx < slowdown_index or idx > slowdown_end:
@@ -124,9 +123,7 @@ class WaypointUpdater(object):
 
     def traffic_cb(self, msg):
         self.traffic_waypt_index = msg.data
-        rospy.logerr("traffic traffic_waypt_indexdex:%s", msg.data)
-        if (self.traffic_waypt_index < 0):
-            self.traffic_waypt_index = None
+        # rospy.logerr("traffic traffic_waypt_index:%s", msg.data)
 
     def obstacle_cb(self, msg):
         # TODO: Callback for /obstacle_waypoint message. We will implement it later
