@@ -102,7 +102,7 @@ class WaypointUpdater(object):
             if self.traffic_waypt_index != None and self.traffic_waypt_index >= idx:
                 slowdown_index = max(self.traffic_waypt_index - SLOWDOWN_WPS, 0)
                 slowdown_end = self.traffic_waypt_index
-                # rospy.logerr("idx: %s, traffic_idx:%s, slowdown_idx:%s, end:%s", idx, self.traffic_waypt_index, slowdown_index, slowdown_end)
+                rospy.logerr("idx: %s, traffic_idx:%s, slowdown_idx:%s, end:%s", idx, self.traffic_waypt_index, slowdown_index, slowdown_end)
             # set speed
             # slowness = SPEED not needed?
             for pt in points:
@@ -124,7 +124,7 @@ class WaypointUpdater(object):
 
     def traffic_cb(self, msg):
         self.traffic_waypt_index = msg.data
-        # rospy.logerr("traffic waypt_index:%s", msg.data)
+        rospy.logerr("traffic traffic_waypt_indexdex:%s", msg.data)
         if (self.traffic_waypt_index < 0):
             self.traffic_waypt_index = None
 
