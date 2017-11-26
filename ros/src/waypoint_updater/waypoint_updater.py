@@ -25,7 +25,6 @@ TODO (for Yousuf and Aaron): Stopline location for each traffic light.
 LOOKAHEAD_WPS = 200 # Number of waypoints we will publish. You can change this number
 SLOWDOWN_WPS = 10 # Number of waypoints starting to slow down to stop
 MPH2MPS = 0.44704
-SPEED = 15 * MPH2MPS
 
 # TODO: these functions should be reused between nodes
 # but that's not very easy to do in ROS...
@@ -77,6 +76,11 @@ class WaypointUpdater(object):
         rospy.Subscriber('/traffic_waypoint', Int32, self.traffic_cb)
 
         self.final_waypoints_pub = rospy.Publisher('final_waypoints', Lane, queue_size=1)
+        
+        # get max speed
+        velocity = rospy.get_param('/waypoint_loader/velocity')
+        self.speed_limit = velocity * 1000 / 3600. # m/s
+        rospy.loginfo("param velocity:%s speed_limit:%s m/s", velocity, self.speed_limit)
 
         # current position of the car
         self.cur_pos = None
@@ -106,7 +110,7 @@ class WaypointUpdater(object):
             # when light goes green, we'll safely reset them
             points = get_next_waypoints(self.base_waypoints, idx, LOOKAHEAD_WPS)
             for pt in points:
-                spd = SPEED # max speed is default
+                spd = self.speed_limit # max speed is default
                 if slowdown_start_idx != None and idx >= slowdown_start_idx:
                     spd = 0
                 pt.twist.twist.linear.x = spd
