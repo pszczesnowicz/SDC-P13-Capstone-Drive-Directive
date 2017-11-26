@@ -12,13 +12,15 @@ import tf
 import cv2
 import yaml
 
+STATE_COUNT_THRESHOLD = 3
+
 # TODO: these functions should be reused between nodes
+# but that's not very easy to do in ROS...
 def get_square_dist(d1, d2):
     x2 = d1.x - d2.x
     y2 = d1.y - d2.y
     return x2*x2 + y2*y2
 
-# get the closest waypoint to pos
 def get_closest_waypoint(pos, waypoints):
     if waypoints != None:
         idx = 0
@@ -32,8 +34,6 @@ def get_closest_waypoint(pos, waypoints):
         return idx
     else:
         return -1
-
-STATE_COUNT_THRESHOLD = 3
 
 class TLDetector(object):
     def __init__(self):
@@ -59,6 +59,10 @@ class TLDetector(object):
 
         config_string = rospy.get_param("/traffic_light_config")
         self.config = yaml.load(config_string)
+        self.stop_lines = map(
+            lambda line_pos: Pose(Point(line_pos[0], line_pos[1], 0), None),
+            self.config['stop_line_positions']
+        )
 
         self.upcoming_red_light_pub = rospy.Publisher('/traffic_waypoint', Int32, queue_size=1)
 
@@ -122,7 +126,7 @@ class TLDetector(object):
             int: index of the closest waypoint in self.waypoints
 
         """
-        # use utility fn, to be made reusable when we discover how
+        # uses utility fn
         return get_closest_waypoint(pose.position, self.waypoints)
 
     def get_light_state(self, light):
@@ -165,20 +169,17 @@ class TLDetector(object):
         light_wp = -1
 
         # List of positions that correspond to the line to stop in front of for a given intersection
-        stop_line_positions = self.config['stop_line_positions']
         if(self.pose):
             car_position = self.get_closest_waypoint(self.pose.pose)
-
             stop_line_positions_dists = map(
-                lambda pos: get_square_dist(self.pose.pose.position, Point(pos[0], pos[1], 0)),
-                stop_line_positions
+                lambda pos: get_square_dist(self.pose.pose.position, pos.position),
+                self.stop_lines
             )
             idx = stop_line_positions_dists.index(min(stop_line_positions_dists))
             light = self.lights[idx]
         if light:
             state = self.get_light_state(light)
-            stop_line = stop_line_positions[idx]
-            light_wp = self.get_closest_waypoint(Pose(Point(stop_line[0], stop_line[1], 0), None))
+            light_wp = self.get_closest_waypoint(self.stop_lines[idx])
             # rospy.loginfo("approaching light state: {} in {}".format(light.state, stop_line_positions_dists[idx]))
             # rospy.loginfo("light_wp number {}, current wp {}".format(light_wp, car_position))
             return light_wp, state
