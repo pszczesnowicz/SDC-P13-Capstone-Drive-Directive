@@ -7,3 +7,7 @@ profile.tmp
 
 .DS_Store
 README.md
+
+models/
+track_dataset/
+bosch_small_traffic_lights_dataset/
