@@ -140,6 +140,7 @@ class TLDetector(object):
 
         """
         # if not light.state == 4: # != UNKNOWN
+        # here we have to make a prediction for light coordinates
         return light.state # only for testing the sim!
 
         # TODO: uncomment to get real predictions
