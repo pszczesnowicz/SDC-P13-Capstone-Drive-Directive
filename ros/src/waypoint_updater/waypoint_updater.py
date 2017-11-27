@@ -5,6 +5,7 @@ from geometry_msgs.msg import PoseStamped
 from styx_msgs.msg import Lane, Waypoint
 
 import math
+from std_msgs .msg import Int32
 
 '''
 This node will publish waypoints from the car's current position to some `x` distance ahead.
@@ -22,7 +23,47 @@ TODO (for Yousuf and Aaron): Stopline location for each traffic light.
 '''
 
 LOOKAHEAD_WPS = 200 # Number of waypoints we will publish. You can change this number
+SLOWDOWN_WPS = 10 # Number of waypoints starting to slow down to stop
+MPH2MPS = 0.44704
 
+# TODO: these functions should be reused between nodes
+# but that's not very easy to do in ROS...
+def get_square_dist(d1, d2):
+    x2 = d1.x - d2.x
+    y2 = d1.y - d2.y
+    return x2*x2 + y2*y2
+
+def get_closest_waypoint(pos, waypoints):
+    if waypoints != None:
+        idx = 0
+        dist = get_square_dist(pos, waypoints[0].pose.pose.position)
+        for i in range(1, len(waypoints)):
+            waypt = waypoints[i]
+            d = get_square_dist(pos, waypt.pose.pose.position)
+            if (d < dist):
+                idx = i
+                dist = d
+        return idx
+    else:
+        return -1
+
+# get next waypoints starting from idx up to count
+def get_next_waypoints(waypoints, idx, count):
+    sz = len(waypoints)
+    last = idx + count + 1
+    if last < sz:
+        return waypoints[idx:last]
+    else:
+        last -= sz # handle circular queue
+        return waypoints[idx:] + waypoints[:last]
+
+# get lane from the waypoints with given id
+def get_lane_object(id, waypoints):
+    lane = Lane()
+    lane.header.frame_id = id
+    lane.header.stamp = rospy.Time.now()
+    lane.waypoints = waypoints
+    return lane
 
 class WaypointUpdater(object):
     def __init__(self):
@@ -32,25 +73,59 @@ class WaypointUpdater(object):
         rospy.Subscriber('/base_waypoints', Lane, self.waypoints_cb)
 
         # TODO: Add a subscriber for /traffic_waypoint and /obstacle_waypoint below
-
+        rospy.Subscriber('/traffic_waypoint', Int32, self.traffic_cb)
 
         self.final_waypoints_pub = rospy.Publisher('final_waypoints', Lane, queue_size=1)
+        
+        # get max speed
+        velocity = rospy.get_param('/waypoint_loader/velocity')
+        self.speed_limit = velocity * 1000 / 3600. # m/s
+        rospy.loginfo("param velocity:%s speed_limit:%s m/s", velocity, self.speed_limit)
 
-        # TODO: Add other member variables you need below
+        # current position of the car
+        self.cur_pos = None
 
+        # list of base waypoints
+        self.base_waypoints = None
+
+        # traffic waypoint index
+        self.traffic_waypt_index = None
         rospy.spin()
 
     def pose_cb(self, msg):
-        # TODO: Implement
-        pass
+        self.cur_pos = msg.pose.position
+        frame_id = msg.header.frame_id
+        self.process_waypts(frame_id)
+
+    def process_waypts(self, frame_id):
+        if self.base_waypoints != None and self.cur_pos != None:
+            # get the closet waypont to the car
+            idx = get_closest_waypoint(self.cur_pos, self.base_waypoints)
+
+            slowdown_start_idx = None
+            if self.traffic_waypt_index != None and self.traffic_waypt_index >= idx:
+                slowdown_start_idx = max(self.traffic_waypt_index - SLOWDOWN_WPS, 0)
+
+            # set speed to 0 for all points after slowdown_start_idx
+            # when light goes green, we'll safely reset them
+            points = get_next_waypoints(self.base_waypoints, idx, LOOKAHEAD_WPS)
+            for pt in points:
+                spd = self.speed_limit # max speed is default
+                if slowdown_start_idx != None and idx >= slowdown_start_idx:
+                    spd = 0
+                pt.twist.twist.linear.x = spd
+            # make lane object
+            lane = get_lane_object(frame_id, points)
+            # publish  lane
+            self.final_waypoints_pub.publish(lane)
 
     def waypoints_cb(self, waypoints):
-        # TODO: Implement
-        pass
+        self.base_waypoints = waypoints.waypoints
 
     def traffic_cb(self, msg):
-        # TODO: Callback for /traffic_waypoint message. Implement
-        pass
+        if self.traffic_waypt_index != msg.data:
+            rospy.logerr("traffic traffic_waypt_index change: :%s", msg.data)
+            self.traffic_waypt_index = msg.data
 
     def obstacle_cb(self, msg):
         # TODO: Callback for /obstacle_waypoint message. We will implement it later
