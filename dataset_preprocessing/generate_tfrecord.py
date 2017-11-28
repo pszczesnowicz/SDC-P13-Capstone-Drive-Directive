@@ -1,20 +1,40 @@
+import argparse
 import tensorflow as tf
-import csv
 import os
+import subprocess
+import sys
+import csv
 from PIL import Image
 import io
-import sys
 
-sys.path.insert(0, '/Users/skunkworks/programming/SDCND/Projects/SDC-P13-Capstone-Drive-Directive/'
-                   'models/research/object_detection/utils')
+parent_path = os.path.dirname(os.getcwd())
+models_path = os.path.join(parent_path, 'models')
+
+# Check if tensorflow/models repo exists in parent directory
+if not os.path.exists(models_path):
+
+    # Clone tensorflow/models repo into parent directory if does not exist
+    tf_models_repo = 'https://github.com/tensorflow/models.git'
+    subprocess.call(['git', 'clone', tf_models_repo, models_path])
+
+# Add path to dataset_util
+sys.path.insert(0, os.path.join(parent_path, 'models/research/object_detection/utils'))
+
 import dataset_util
-# from object_detection.utils import dataset_util
 
-flags = tf.app.flags
-flags.DEFINE_string('directory_path', '', 'Path to input directory')
-flags.DEFINE_string('labels_filename', '', 'Name of labels file')
-flags.DEFINE_string('record_filename', '', 'Name of record file')
-FLAGS = flags.FLAGS
+# Parse arguments from terminal
+parser = argparse.ArgumentParser()
+
+parser.add_argument('--read_path', '-r', type=str, required=True,
+                    help='Path to directory containing dataset images')
+
+parser.add_argument('--labels_filename', '-l', type=str, required=True,
+                    help='Name of file containing dataset labels')
+
+parser.add_argument('--save_filename', '-s', type=str, required=True,
+                    help='Name of file to be saved')
+
+args = parser.parse_args()
 
 
 def create_tf_example(example, directory_path):
@@ -33,6 +53,7 @@ def create_tf_example(example, directory_path):
     height, width = img.size
     image_format = b'jpg'
 
+    # Assuming one bounding box per image
     xmins = [float(example[3]) / width]  # List of normalized left x coordinates in bounding box (1 per box)
     xmaxs = [float(example[4]) / width]  # List of normalized right x coordinates in bounding box (1 per box)
     ymins = [float(example[5]) / height]  # List of normalized top y coordinates in bounding box (1 per box)
@@ -65,10 +86,10 @@ def create_tf_example(example, directory_path):
     return tf_example
 
 
-def main(_):
+def main():
 
-    labels_path = os.path.join(FLAGS.directory_path, FLAGS.labels_filename)
-    record_path = os.path.join(FLAGS.directory_path, FLAGS.record_filename)
+    labels_path = os.path.join(args.read_path, args.labels_filename)
+    record_path = os.path.join(args.read_path, args.save_filename)
 
     writer = tf.python_io.TFRecordWriter(record_path)
 
@@ -79,11 +100,11 @@ def main(_):
 
             # Skip labels file header
             if example[0] != 'image':
-                tf_example = create_tf_example(example, FLAGS.directory_path)
+                tf_example = create_tf_example(example, args.read_path)
                 writer.write(tf_example.SerializeToString())
 
     writer.close()
 
 
 if __name__ == '__main__':
-    tf.app.run()
+    main()
