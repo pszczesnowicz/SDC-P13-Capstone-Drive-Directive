@@ -118,8 +118,8 @@ class WaypointUpdater(object):
             points = get_next_waypoints(self.waypoints, idx + 1, LOOKAHEAD_WPS)
 
             # log upcoming 25 waypoints
-            log_vals = [round(wp.twist.twist.linear.x, 1) for wp in points[:25]]
-            rospy.logerr_throttle(10, "v_next: {}".format(log_vals))
+            # log_vals = [round(wp.twist.twist.linear.x, 1) for wp in points[:25]]
+            # rospy.logerr_throttle(10, "v_next: {}".format(log_vals))
 
             # make lane object
             lane = get_lane_object(frame_id, points)
@@ -146,7 +146,7 @@ class WaypointUpdater(object):
             # TODO(anyone): FIX tl_detector logic not to return these!!!
             self.fullspeed()
             return
-        # rospy.logerr("red light idx: :%s", self.traffic_waypt_index)
+        rospy.logerr("red light idx: :%s", self.traffic_waypt_index)
         spd = self.speed_limit
         req_slowdown_dist = int(spd * VELOCITY_TO_SLOWDOWN_RATIO)
         deccel_start = max(self.traffic_waypt_index - req_slowdown_dist, 0)
