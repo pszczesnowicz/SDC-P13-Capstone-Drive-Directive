@@ -7,3 +7,6 @@ profile.tmp
 
 .DS_Store
 README.md
+.idea/
+training/data/csv/*.csv
+training/data/yaml/*.yaml
