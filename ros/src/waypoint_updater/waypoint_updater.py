@@ -23,7 +23,7 @@ TODO (for Yousuf and Aaron): Stopline location for each traffic light.
 '''
 
 LOOKAHEAD_WPS = 200 # Number of waypoints we will publish. You can change this number
-SLOWDOWN_WPS = 10 # Number of waypoints starting to slow down to stop
+SLOWDOWN_WPS = 20 # Number of waypoints starting to slow down to stop
 MPH2MPS = 0.44704
 
 # TODO: these functions should be reused between nodes
@@ -77,10 +77,13 @@ class WaypointUpdater(object):
 
         self.final_waypoints_pub = rospy.Publisher('final_waypoints', Lane, queue_size=1)
         
-        # get max speed
+        # get max speed 
         velocity = rospy.get_param('/waypoint_loader/velocity')
         self.speed_limit = velocity * 1000 / 3600. # m/s
-        rospy.loginfo("param velocity:%s speed_limit:%s m/s", velocity, self.speed_limit)
+
+	# just init the slowdown waypoint count, will calc when first waypoint callback
+	self.slowdown_wypts = SLOWDOWN_WPS 
+	rospy.loginfo("velocity:%s speed_limit:%s m/s, slowdown_wypts:%s", velocity, self.speed_limit, self.slowdown_wypts)
 
         # current position of the car
         self.cur_pos = None
@@ -104,7 +107,7 @@ class WaypointUpdater(object):
 
             slowdown_start_idx = None
             if self.traffic_waypt_index != None and self.traffic_waypt_index >= idx:
-                slowdown_start_idx = max(self.traffic_waypt_index - SLOWDOWN_WPS, 0)
+		slowdown_start_idx = max(self.traffic_waypt_index - self.slowdown_wypts, 0)
 
             # set speed to 0 for all points after slowdown_start_idx
             # when light goes green, we'll safely reset them
@@ -119,13 +122,28 @@ class WaypointUpdater(object):
             # publish  lane
             self.final_waypoints_pub.publish(lane)
 
-    def waypoints_cb(self, waypoints):
-        self.base_waypoints = waypoints.waypoints
+    def calc_slowdown_count(self, waypoints):
+	sample_count = min(5, len(waypoints))
+	l = []
+	for i in range(1, sample_count):
+		delta = get_square_dist(waypoints[i-1].pose.pose.position, waypoints[i].pose.pose.position)
+		l.append(math.sqrt(delta))
+	# slow down way points count = speed limit / avg(waypoint distance) / 33
+	self.slowdown_wypts = int(self.speed_limit / (sum(l) / len(l)) / 33)
+	rospy.loginfo("slowdown_wypts:%s", self.slowdown_wypts)
+
+    def waypoints_cb(self, lane):
+	if self.base_waypoints == None:
+		self.calc_slowdown_count(lane.waypoints)
+        self.base_waypoints = lane.waypoints
 
     def traffic_cb(self, msg):
-        if self.traffic_waypt_index != msg.data:
-            rospy.logerr("traffic traffic_waypt_index change: :%s", msg.data)
-            self.traffic_waypt_index = msg.data
+        old_val = self.traffic_waypt_index 
+        self.traffic_waypt_index = msg.data
+        if old_val == None:
+            rospy.loginfo("traffic traffic_waypt_index change to: %s", msg.data)
+        elif msg.data != old_val:
+            rospy.loginfo("traffic traffic_waypt_index change from %s to %s", old_val, msg.data)
 
     def obstacle_cb(self, msg):
         # TODO: Callback for /obstacle_waypoint message. We will implement it later

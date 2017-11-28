@@ -112,24 +112,13 @@ class TLDetector(object):
             light_wp = light_wp if state == TrafficLight.RED else -1
             self.last_wp = light_wp
             self.upcoming_red_light_pub.publish(Int32(light_wp))
+	    #rospy.loginfo("publish light_wp:%s", light_wp)
         else:
             self.upcoming_red_light_pub.publish(Int32(self.last_wp))
         self.state_count += 1
 
-    def get_closest_waypoint(self, pose):
-        """Identifies the closest path waypoint to the given position
-            https://en.wikipedia.org/wiki/Closest_pair_of_points_problem
-        Args:
-            pose (Pose): position to match a waypoint to
 
-        Returns:
-            int: index of the closest waypoint in self.waypoints
-
-        """
-        # uses utility fn
-        return get_closest_waypoint(pose.position, self.waypoints)
-
-    def get_light_state(self, light):
+    def get_light_state(self):
         """Determines the current color of the traffic light
 
         Args:
@@ -139,18 +128,14 @@ class TLDetector(object):
             int: ID of traffic light color (specified in styx_msgs/TrafficLight)
 
         """
-        # if not light.state == 4: # != UNKNOWN
-        return light.state # only for testing the sim!
+        if (not self.has_image):
+             self.prev_light_loc = None
+             return False
 
-        # TODO: uncomment to get real predictions
-        # if(not self.has_image):
-        #     self.prev_light_loc = None
-        #     return False
+        cv_image = self.bridge.imgmsg_to_cv2(self.camera_image, "bgr8")
 
-        # cv_image = self.bridge.imgmsg_to_cv2(self.camera_image, "bgr8")
-
-        # #Get classification
-        # return self.light_classifier.get_classification(cv_image)
+        #Get classification
+        return self.light_classifier.get_classification(cv_image)
 
     def process_traffic_lights(self):
         """Finds closest visible traffic light, if one exists, and determines its
@@ -164,27 +149,28 @@ class TLDetector(object):
 
         # TODO: classification should not be performed as part of image_cb, because it
         # has delays. Wrap this into a Rate object later on.
+	# probably we can limit to process image only within certain distance of a light
 
-        light = None
         light_wp = -1
+	idx = -1
 
         # List of positions that correspond to the line to stop in front of for a given intersection
-        if(self.pose):
-            car_position = self.get_closest_waypoint(self.pose.pose)
+        if (self.pose):
+            car_position = get_closest_waypoint(self.pose.pose.position, self.waypoints)
             stop_line_positions_dists = map(
                 lambda pos: get_square_dist(self.pose.pose.position, pos.position),
                 self.stop_lines
             )
             idx = stop_line_positions_dists.index(min(stop_line_positions_dists))
-            light = self.lights[idx]
-        if light:
-            state = self.get_light_state(light)
-            light_wp = self.get_closest_waypoint(self.stop_lines[idx])
-            # rospy.loginfo("approaching light state: {} in {}".format(light.state, stop_line_positions_dists[idx]))
-            # rospy.loginfo("light_wp number {}, current wp {}".format(light_wp, car_position))
-            return light_wp, state
-        self.waypoints = None
-        return -1, TrafficLight.UNKNOWN
+
+        if idx >= 0:
+        	state = self.get_light_state()
+        	light_wp = get_closest_waypoint(self.stop_lines[idx].position, self.waypoints)
+        	# rospy.loginfo("approaching light state: {} in {}".format(state, stop_line_positions_dists[idx]))
+        	# rospy.loginfo("light_wp number {}, current wp {}".format(light_wp, car_position))
+        	return light_wp, state
+	else:
+        	return -1, TrafficLight.UNKNOWN
 
 if __name__ == '__main__':
     try:
