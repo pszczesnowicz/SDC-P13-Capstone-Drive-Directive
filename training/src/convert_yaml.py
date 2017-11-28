@@ -14,8 +14,8 @@ from os.path import isfile, join
 
 yaml_path = '../data/yaml/'
 csv_path = '../data/csv/'
-width = 300
-height = 240
+width = 1280
+height = 720
 
 
 def convert_box(path, box):
