@@ -9,7 +9,7 @@ Name | eMail | Time Zone
 ------------ | ------------- | -------------
 Wade Ju	 | wade_ju@me.com (wadeju@yahoo.com)  | 	UTC-8 (PST)
 Jan Grodowski	 | jgrodowski@gmail.com  | 	UTC+1
-Christian Reiser	 | reisercg@gmail.com	 | (MEZ)
+Christian Reiser	 | reisercg@gmail.com	 | UTC+1
 Cedric Bodet | 	bodetc@gmail.com	 | 	UTC+1/+2
 
 We have implemented Waypoint Updater Node, DBW node, and Traffic Light Detection Node for the project.
