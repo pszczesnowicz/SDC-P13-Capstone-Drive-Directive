@@ -1,11 +1,14 @@
-import argparse
-import tensorflow as tf
 import os
 import subprocess
 import sys
-import csv
-from PIL import Image
+import argparse
 import io
+
+import tensorflow as tf
+import pandas as pd
+
+from collections import namedtuple
+from PIL import Image
 
 parent_path = os.path.dirname(os.getcwd())
 models_path = os.path.join(parent_path, 'models')
@@ -24,49 +27,49 @@ import dataset_util
 
 # Parse arguments from terminal
 parser = argparse.ArgumentParser()
-
 parser.add_argument('--read_path', '-r', type=str, required=True,
                     help='Path to directory containing dataset images')
-
 parser.add_argument('--labels_filename', '-l', type=str, required=True,
                     help='Name of file containing dataset labels')
-
 parser.add_argument('--save_filename', '-s', type=str, required=True,
                     help='Name of file to be saved')
-
 args = parser.parse_args()
 
 
 def create_tf_example(example, directory_path):
 
-    filename = example[0].encode()
-
-    # Open image
-    img_path = os.path.join(directory_path, example[0])
-    img = Image.open(img_path)
+    filename = example.image.encode('utf8')
 
     # Encode image
-    img_bytes_array = io.BytesIO()
-    img.save(img_bytes_array, format='JPEG')
-    encoded_image_data = img_bytes_array.getvalue()
+    with tf.gfile.GFile(os.path.join(directory_path, example.image), 'rb') as fid:
+        encoded_image_data = fid.read()
 
-    height, width = img.size
-    image_format = b'jpg'
+    encoded_image_data_io = io.BytesIO(encoded_image_data)
+    img = Image.open(encoded_image_data_io)
+    width, height = img.size
+    image_format = 'jpg'.encode('utf8')
 
-    # Assuming one bounding box per image
-    xmins = [float(example[3]) / width]  # List of normalized left x coordinates in bounding box (1 per box)
-    xmaxs = [float(example[4]) / width]  # List of normalized right x coordinates in bounding box (1 per box)
-    ymins = [float(example[5]) / height]  # List of normalized top y coordinates in bounding box (1 per box)
-    ymaxs = [float(example[6]) / height]  # List of normalized bottom y coordinates in bounding box (1 per box)
-    classes_text = [example[2].encode()]  # List of string class name of bounding box (1 per box)
+    xmins = []  # List of normalized left x coordinates in bounding box (1 per box)
+    xmaxs = []  # List of normalized right x coordinates in bounding box (1 per box)
+    ymins = []  # List of normalized top y coordinates in bounding box (1 per box)
+    ymaxs = []  # List of normalized bottom y coordinates in bounding box (1 per box)
+    classes_text = []  # List of string class name of bounding box (1 per box)
+    classes = []  # List of integer class id of bounding box (1 per box)
 
-    # List of integer class id of bounding box (1 per box)
-    if example[2] == 'red':
-        classes = [1]
-    elif example[2] == 'yellow':
-        classes = [2]
-    elif example[2] == 'green':
-        classes = [3]
+    for index, row in example.object.iterrows():
+
+        xmins.append(float(row['xMin']) / width)
+        xmaxs.append(float(row['xMax']) / width)
+        ymins.append(float(row['yMin']) / height)
+        ymaxs.append(float(row['yMax']) / height)
+        classes_text.append(row['name'].encode('utf8'))
+
+        if row['name'] == 'red':
+            classes.append(1)
+        elif row['name'] == 'yellow':
+            classes.append(2)
+        elif row['name'] == 'green':
+            classes.append(3)
 
     tf_example = tf.train.Example(features=tf.train.Features(feature={
       'image/height': dataset_util.int64_feature(height),
@@ -91,17 +94,25 @@ def main():
     labels_path = os.path.join(args.read_path, args.labels_filename)
     record_path = os.path.join(args.read_path, args.save_filename)
 
+    # Create TFRecord writer
     writer = tf.python_io.TFRecordWriter(record_path)
 
-    with open(labels_path, 'r') as labels_reader:
-        examples = csv.reader(labels_reader, delimiter=',')
+    # Read in labels file
+    examples = pd.read_csv(labels_path)
 
-        for example in examples:
+    data = namedtuple('data', ['image', 'object'])
+    files_grouped = examples.groupby('image')
 
-            # Skip labels file header
-            if example[0] != 'image':
-                tf_example = create_tf_example(example, args.read_path)
-                writer.write(tf_example.SerializeToString())
+    # Create an array with annotation box coordinates grouped by image
+    examples_grouped = [data(image, files_grouped.get_group(x)) for image, x in
+                        zip(files_grouped.groups.keys(), files_grouped.groups)]
+
+    for example in examples_grouped:
+
+        # Skip labels file header
+        if example[0] != 'image':
+            tf_example = create_tf_example(example, args.read_path)
+            writer.write(tf_example.SerializeToString())
 
     writer.close()
 
