@@ -78,9 +78,9 @@ If it's higher than the threshold, it's a red light.
 TBD
 
 ### Images
-![Green Light](/images/m_green1.png)
-![Red Light](/images/middle_red1.png)
-![Car](/images/m1.png)
+![Green Light](m_green1.png)
+![Red Light](middle_red1.png)
+![Car](m1.png)
 
 ### Conclusion
 It's a good project. 
