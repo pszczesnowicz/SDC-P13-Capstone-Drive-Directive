@@ -9,6 +9,5 @@ profile.tmp
 .idea/
 
 models/
-track_dataset/
-simulator_dataset/
-bosch_small_traffic_lights_dataset/
+datasets/
+training/
