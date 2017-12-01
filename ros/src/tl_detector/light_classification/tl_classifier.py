@@ -26,6 +26,8 @@ PATH_TO_LABELS = os.path.join('training', 'object-detection.pbtxt')     #done?
 NUM_CLASSES = 1 # y u no two classes but one? Christian: If class "RED" is detectet, stop the car at the tl?
 
 #Simulator ToDo: Get Images from Simulator
+#PATH_TO_TEST_IMAGES_DIR = 'test_images/red' #
+#TEST_IMAGE_PATHS = [os.path.join(PATH_TO_TEST_IMAGES_DIR, 'out000{}.png'.format(2*i)) for i in range(24, 26)]
 image = Image.open(image_path)
 
 # Size, in inches, of the output images.
