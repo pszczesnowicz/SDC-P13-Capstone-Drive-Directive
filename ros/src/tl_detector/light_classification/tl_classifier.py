@@ -19,18 +19,18 @@ from PIL import Image
 from utils import label_map_util
 from utils import visualization_utils as vis_util
 
-# TODO: fix dem paths!!!
-MODEL_NAME = 'red_inference_graph'#'ssd_mobilenet_v1_coco_2017_11_17'
-PATH_TO_CKPT = MODEL_NAME + '/frozen_inference_graph.pb'
-PATH_TO_LABELS = os.path.join('training', 'object-detection.pbtxt')
-NUM_CLASSES = 1 # y u no two classes but one?
+# TODO: fix dem paths!!!                                                #done?
+MODEL_NAME = 'red_inference_graph'#'ssd_mobilenet_v1_coco_2017_11_17'   #done?
+PATH_TO_CKPT = MODEL_NAME + '/frozen_inference_graph.pb'                #done?
+PATH_TO_LABELS = os.path.join('training', 'object-detection.pbtxt')     #done?
+NUM_CLASSES = 1 # y u no two classes but one? Christian: If class "RED" is detectet, stop the car at the tl?
 
-#Simulator
-PATH_TO_TEST_IMAGES_DIR = 'test_images/red'
+#Simulator ToDo: Get Images from Simulator
+PATH_TO_TEST_IMAGES_DIR = 'test_images/red' #
 TEST_IMAGE_PATHS = [os.path.join(PATH_TO_TEST_IMAGES_DIR, 'out000{}.png'.format(2*i)) for i in range(24, 26)]
 
 # Size, in inches, of the output images.
-IMAGE_SIZE = (12, 8)
+IMAGE_SIZE = (12, 8) #Not necessary?
 
 def load_image_into_numpy_array(image):
     (im_width, im_height) = image.size
@@ -69,24 +69,27 @@ class TLClassifier(object):
                 image_tensor = self.detection_graph.get_tensor_by_name('image_tensor:0')
                 # Each box represents a part of the image where a particular object was detected.
                 detection_boxes = self.detection_graph.get_tensor_by_name('detection_boxes:0')
-                # Each score represent how level of confidence for each of the objects.
+                # Each score represent the level of confidence for each of the objects.
                 # Score is shown on the result image, together with the class label.
                 detection_scores = self.detection_graph.get_tensor_by_name('detection_scores:0')
                 detection_classes = self.detection_graph.get_tensor_by_name('detection_classes:0')
                 num_detections = self.detection_graph.get_tensor_by_name('num_detections:0')
 
 
-                # for image_path in TEST_IMAGE_PATHS:
-                #     image = Image.open(image_path)
-                #     # the array based representation of the image will be used later in order to prepare the
-                #     # result image with boxes and labels on it.
-                #     image_np = load_image_into_numpy_array(image)
-                #     # Expand dimensions since the model expects images to have shape: [1, None, None, 3]
-                #     image_np_expanded = np.expand_dims(image_np, axis=0)
-                #     # Actual detection.
-                #     (boxes, scores, classes, num) = sess.run(
-                #         [detection_boxes, detection_scores, detection_classes, num_detections],
-                #         feed_dict={image_tensor: image_np_expanded})
+                
+                image = Image.open(image_path) #ToDo: get image from Simulator
+                # the array based representation of the image will be used later in order to prepare the
+                # result image with boxes and labels on it.
+                image_np = load_image_into_numpy_array(image)
+                # Expand dimensions since the model expects images to have shape: [1, None, None, 3]
+                image_np_expanded = np.expand_dims(image_np, axis=0)
+                # Actual detection.
+                (boxes, scores, classes, num) = sess.run(
+                     [detection_boxes, detection_scores, detection_classes, num_detections],
+                     feed_dict={image_tensor: image_np_expanded})
+                RED = false
+                if max(scores[0]) > 0.5:
+                      RED = true #return this value?
                 #     # Visualization of the results of a detection.
                 #     vis_util.visualize_boxes_and_labels_on_image_array(
                 #         image_np,
