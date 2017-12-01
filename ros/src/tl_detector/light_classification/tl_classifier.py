@@ -26,8 +26,7 @@ PATH_TO_LABELS = os.path.join('training', 'object-detection.pbtxt')     #done?
 NUM_CLASSES = 1 # y u no two classes but one? Christian: If class "RED" is detectet, stop the car at the tl?
 
 #Simulator ToDo: Get Images from Simulator
-PATH_TO_TEST_IMAGES_DIR = 'test_images/red' #
-TEST_IMAGE_PATHS = [os.path.join(PATH_TO_TEST_IMAGES_DIR, 'out000{}.png'.format(2*i)) for i in range(24, 26)]
+image = Image.open(image_path)
 
 # Size, in inches, of the output images.
 IMAGE_SIZE = (12, 8) #Not necessary?
@@ -75,9 +74,6 @@ class TLClassifier(object):
                 detection_classes = self.detection_graph.get_tensor_by_name('detection_classes:0')
                 num_detections = self.detection_graph.get_tensor_by_name('num_detections:0')
 
-
-                
-                image = Image.open(image_path) #ToDo: get image from Simulator
                 # the array based representation of the image will be used later in order to prepare the
                 # result image with boxes and labels on it.
                 image_np = load_image_into_numpy_array(image)
@@ -87,9 +83,9 @@ class TLClassifier(object):
                 (boxes, scores, classes, num) = sess.run(
                      [detection_boxes, detection_scores, detection_classes, num_detections],
                      feed_dict={image_tensor: image_np_expanded})
-                RED = false
+                state = TrafficLight.GREEN #default state = green?
                 if max(scores[0]) > 0.5:
-                      RED = true #return this value?
+                      state = TrafficLight.RED #return state?
                 #     # Visualization of the results of a detection.
                 #     vis_util.visualize_boxes_and_labels_on_image_array(
                 #         image_np,
@@ -104,4 +100,4 @@ class TLClassifier(object):
 
         # TODO: return dem labels
         rospy.logerr("BAAAACOOOOOONNNNN!!!!!")
-        return TrafficLight.RED
+        return state
