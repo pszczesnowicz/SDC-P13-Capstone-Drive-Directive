@@ -13,6 +13,7 @@ import zipfile
 
 from collections import defaultdict
 from io import StringIO
+from os.path import dirname, abspath 
 from matplotlib import pyplot as plt
 from PIL import Image
 # TODO: provide utils module!!! pow pow pow
@@ -28,7 +29,7 @@ NUM_CLASSES = 1 # y u no two classes but one? Christian: If class "RED" is detec
 #Simulator ToDo: Get Images from Simulator
 #PATH_TO_TEST_IMAGES_DIR = 'test_images/red' #
 #TEST_IMAGE_PATHS = [os.path.join(PATH_TO_TEST_IMAGES_DIR, 'out000{}.png'.format(2*i)) for i in range(24, 26)]
-image = Image.open(image_path)
+#image = Image.open(image_path)
 
 # Size, in inches, of the output images.
 IMAGE_SIZE = (12, 8) #Not necessary?
@@ -103,3 +104,4 @@ class TLClassifier(object):
         # TODO: return dem labels
         rospy.logerr("BAAAACOOOOOONNNNN!!!!!")
         return state
+
