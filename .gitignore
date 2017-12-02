@@ -6,7 +6,7 @@ devel
 profile.tmp
 
 .DS_Store
-README.md
+__MACOSX
 .idea/
 training/data/csv/*.csv
 training/data/yaml/*.yaml
