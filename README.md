@@ -74,8 +74,12 @@ If it's higher than the threshold, it's a red light.
 	else:
         	return  TrafficLight.UNKNOWN
 
-#### CNN classifier
-TBD
+#### Tensorflow Object Detection API: Single Shot Multibox Detector (SSD) with MobileNet
+
+[Tensorflow Object Detection API](https://github.com/tensorflow/models/tree/master/research/object_detection) is an accurate ML model capable of localizing and identifying multiple objects in a single image. It was open-sourced by Google and was built on top of TensoFlow.
+We used the Single Shot Multibox Detector (SSD) with MobileNet because it runs fastest and we want to use it detecting traffic lights in real time. We loaded the pre-trained weights from the Coco-Dataset and trained with 100 hand labeled simulator and real-world images with red traffic lights each. For batch-size, we chose 8 due to memory constraints and 500 number of steps.
+Also, we changed the number of classes to one. The idea was to only detect red lights. If the model can't detect a red traffic light the car should drive.
+
 
 ### Images
 ![Green Light](m_green1.png)
