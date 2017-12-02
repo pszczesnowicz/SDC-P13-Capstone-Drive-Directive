@@ -1,5 +1,5 @@
 from styx_msgs.msg import TrafficLight
-import cv2 # TODO: needed?
+import cv2  # TODO: needed?
 import numpy as np
 import rospy
 
@@ -13,7 +13,7 @@ import zipfile
 
 from collections import defaultdict
 from io import StringIO
-from os.path import dirname, abspath 
+from os.path import dirname, abspath
 from matplotlib import pyplot as plt
 from PIL import Image
 # TODO: provide utils module!!! pow pow pow
@@ -21,23 +21,18 @@ from utils import label_map_util
 from utils import visualization_utils as vis_util
 
 # TODO: fix dem paths!!!                                                #done?
-MODEL_NAME = 'red_inference_graph'#'ssd_mobilenet_v1_coco_2017_11_17'   #done?
-PATH_TO_CKPT = MODEL_NAME + '/frozen_inference_graph.pb'                #done?
-PATH_TO_LABELS = os.path.join('training', 'object-detection.pbtxt')     #done?
-NUM_CLASSES = 1 # y u no two classes but one? Christian: If class "RED" is detectet, stop the car at the tl?
-
-#Simulator ToDo: Get Images from Simulator
-#PATH_TO_TEST_IMAGES_DIR = 'test_images/red' #
-#TEST_IMAGE_PATHS = [os.path.join(PATH_TO_TEST_IMAGES_DIR, 'out000{}.png'.format(2*i)) for i in range(24, 26)]
-#image = Image.open(image_path)
+MODEL_NAME = 'red_inference_graph'  # 'ssd_mobilenet_v1_coco_2017_11_17'   #done?
+PATH_TO_CKPT = MODEL_NAME + '/frozen_inference_graph.pb'  # done?
 
 # Size, in inches, of the output images.
-IMAGE_SIZE = (12, 8) #Not necessary?
+IMAGE_SIZE = (12, 8)  # Not necessary?
+
 
 def load_image_into_numpy_array(image):
     (im_width, im_height) = image.size
     return np.array(image.getdata()).reshape(
         (im_height, im_width, 3)).astype(np.uint8)
+
 
 class TLClassifier(object):
     def __init__(self):
@@ -50,10 +45,6 @@ class TLClassifier(object):
                 serialized_graph = fid.read()
                 od_graph_def.ParseFromString(serialized_graph)
                 tf.import_graph_def(od_graph_def, name='')
-
-        label_map = label_map_util.load_labelmap(PATH_TO_LABELS)
-        categories = label_map_util.convert_label_map_to_categories(label_map, max_num_classes=NUM_CLASSES, use_display_name=True)
-        category_index = label_map_util.create_category_index(categories)
 
     def get_classification(self, image):
         """Determines the color of the traffic light in the image
@@ -84,24 +75,12 @@ class TLClassifier(object):
                 image_np_expanded = np.expand_dims(image_np, axis=0)
                 # Actual detection.
                 (boxes, scores, classes, num) = sess.run(
-                     [detection_boxes, detection_scores, detection_classes, num_detections],
-                     feed_dict={image_tensor: image_np_expanded})
-                state = TrafficLight.GREEN #default state = green?
-                if max(scores[0]) > 0.5:
-                      state = TrafficLight.RED #return state?
-                #     # Visualization of the results of a detection.
-                #     vis_util.visualize_boxes_and_labels_on_image_array(
-                #         image_np,
-                #         np.squeeze(boxes),
-                #         np.squeeze(classes).astype(np.int32),
-                #         np.squeeze(scores),
-                #         category_index,
-                #         use_normalized_coordinates=True,
-                #         line_thickness=8)
-                #     plt.figure(figsize=IMAGE_SIZE)
-                #     plt.imshow(image_np)
+                    [detection_boxes, detection_scores, detection_classes, num_detections],
+                    feed_dict={image_tensor: image_np_expanded})
 
-        # TODO: return dem labels
-        rospy.logerr("BAAAACOOOOOONNNNN!!!!!")
-        return state
+                # If any detected box has more than 50% chance of being red
+                if max(scores[0]) > 0.5:
+                    return TrafficLight.RED
+                else:
+                    return TrafficLight.UNKNOWN
 
