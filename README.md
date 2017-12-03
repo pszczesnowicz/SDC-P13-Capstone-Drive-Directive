@@ -18,15 +18,15 @@ We have implemented Waypoint Updater Node, DBW node, and Traffic Light Detection
 This node  subscribes to /base_waypoints, /current_pose, and /traffic_waypoint,
 and publishes 200 waypoints with velocities from the current car position to /final_waypoints.
 
-/base_waypoints: list of wwypoints with positions in world coordinate
+/base_waypoints: list of waypoints with positions in world coordinate
 /current_pose: current car position in world coordinate
 /traffic_waypoint: the waypoint index of stop line (traffic light)   
 
 We get maximum velocity from /waypoint_loader/velocity and convert it to unit of meters per second.
 
-When a new /current_pose topic comes in, pose_cb callback is invoked to get an updated position of the car and calculate new waypoints from the updated position. We get next 200 waypoints from the base waypoints and wrapping around if reaching the end.
+When a new /current_pose topic comes in, pose_cb callback is invoked to get an updated position of the car and calculate new waypoints from the updated position. We get next 200 waypoints from the base waypoints, wrapping around if it reaches the end of the list.
 
-When a new traffic light topic comes in, traffic_cb callback is invoked to adjust speed. First, we check whether it's a new message to avoid duplication. For red light, we use a distance equal to max speed times five to slow down velocity of the car linearly before a stop line.  
+When a new traffic light topic comes in, traffic_cb callback is invoked to adjust speed. First, we check whether it's a new message to avoid duplication. For red light, we use a slowdown distance equal to maximum speed times five to smoothly slowdown the car linearly before a stop line.  
 
 ### DBW Node
 Once messages are being published by the waypoint updater node to /final_waypoints, the vehicle's waypoint follower will publish twist commands to the /twist_cmd topic, which contains linear and angular velocities.
@@ -41,7 +41,7 @@ DBW uses a PID control to calcualte throttle, brake, steering angle with input o
 
 Brake is calculated by the formula of (vehicle mass + fuel capacity * density) * acceleraion * wheel radius.
 If brake is less the brake dead band parameter, we simply set it to zero.
-Steering angle is calculated by the yaw controller provided by Udacity.
+Steering angle is calculated by the yaw controller provided by Udacity, also limited by parameters.
 
 If a safety driver takes over control of the car, DBW node will be disabled.
 
@@ -52,7 +52,7 @@ For example, if waypoints is the complete list of waypoints, and an upcoming red
 
 We have gone through three implementaions for this module. First, we implemented it with /vehicle/traffic_lights topic from simulator. It has both color and position of traffic lights. It helped us to develop and test solution.  
 
-Second, we implemented a HSV classifier to detect image of red light. We get poistions of stop lines from the provided config files. When an image comes in, image_cb callback function is invoked to process a image. If the state sustains more three threshold count, we publish waypoint index of the corresponding stop line for red light to /traffic_waypoint. Otherwise, we publish -1 to /traffic_waypoint.
+Second, we implemented a HSV classifier to detect image of red light. We get poistions of stop lines from the provided config files. When an image comes in, image_cb callback function is invoked to process a image. If the state sustains more than three count threshold, we publish the waypoint index of the corresponding stop line of red light to /traffic_waypoint. Otherwise, we publish -1 to /traffic_waypoint.
 
 Third, we use a Convolutional Neural Network (CNN) to train and predicate traffic light color.
 
@@ -74,8 +74,8 @@ If it's higher than the threshold, it's a red light.
 	else:
         	return  TrafficLight.UNKNOWN
 
-#### CNN classifier
-TBD
+#### CNN ML classifier
+We use Tensor Flow Object Detection API https://github.com/tensorflow/models/tree/master/research/object_detection for MLclassifier. We also used Bosch traffic light dataset wiytj simulator images for training. The training took more time than we planned. Training without enough data also affects predication accuracy.
 
 ### Images
 ![Green Light](m_green1.png)
