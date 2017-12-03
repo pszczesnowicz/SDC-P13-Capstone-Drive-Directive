@@ -128,9 +128,10 @@ class TLDetector(object):
             int: ID of traffic light color (specified in styx_msgs/TrafficLight)
 
         """
-        if (not self.has_image):
-             self.prev_light_loc = None
-             return False
+        # if not light.state == 4: # != UNKNOWN
+        # here we have to make a prediction for light coordinates
+        return light.state # only for testing the sim!
+
 
         cv_image = self.bridge.imgmsg_to_cv2(self.camera_image, "bgr8")
 
