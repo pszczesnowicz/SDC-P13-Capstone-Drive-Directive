@@ -28,12 +28,12 @@ NUM_CLASSES = 1
 # Size, in inches, of the output images.
 IMAGE_SIZE = (12, 8) #Not necessary?
 
-class TLClassifierHSV(object):
+class TLClassifier(object):
     def __init__(self):
         #TODO load classifier
         self.RED_MIN = np.array([0, 180, 180], np.uint8)
         self.RED_MAX = np.array([10, 255, 255], np.uint8)
-        self.THRESHOLD = 30
+        self.THRESHOLD = 60
 
     def get_classification(self, image):
         """Determines the color of the traffic light in the image
@@ -56,7 +56,7 @@ class TLClassifierHSV(object):
         else:
             return  TrafficLight.UNKNOWN
 
-class TLClassifier(object):
+class TLClassifierML(object):
     def __init__(self):
         # Used for cross validating NN predictions against ground truth,
         # as HSV is really good in predicting traffic light colours in
@@ -74,7 +74,6 @@ class TLClassifier(object):
         label_map = label_map_util.load_labelmap(PATH_TO_LABELS)
         categories = label_map_util.convert_label_map_to_categories(label_map, max_num_classes=NUM_CLASSES, use_display_name=True)
         category_index = label_map_util.create_category_index(categories)
-	#self.dbg_idx = 0
 
     def get_classification(self, image):
         """Determines the color of the traffic light in the image
