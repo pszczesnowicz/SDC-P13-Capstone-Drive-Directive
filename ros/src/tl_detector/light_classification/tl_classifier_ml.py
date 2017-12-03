@@ -13,7 +13,7 @@ import zipfile
 
 from collections import defaultdict
 from io import StringIO
-from os.path import dirname, abspath 
+from os.path import dirname, abspath
 from matplotlib import pyplot as plt
 from PIL import Image
 # TODO: provide utils module!!! pow pow pow
@@ -22,21 +22,46 @@ from utils import visualization_utils as vis_util
 
 PATH = os.path.dirname(os.path.realpath(__file__))
 PATH_TO_CKPT = os.path.join(PATH,"red_inference_graph/frozen_inference_graph.pb")
-PATH_TO_LABELS = os.path.join(PATH, "training/object-detection.pbtxt")  
-NUM_CLASSES = 1 # y u no two classes but one? Christian: If class "RED" is detectet, stop the car at the tl?
-
-#Simulator ToDo: Get Images from Simulator
-#PATH_TO_TEST_IMAGES_DIR = 'test_images/red' #
-#TEST_IMAGE_PATHS = [os.path.join(PATH_TO_TEST_IMAGES_DIR, 'out000{}.png'.format(2*i)) for i in range(24, 26)]
-#image = Image.open(image_path)
+PATH_TO_LABELS = os.path.join(PATH, "training/object-detection.pbtxt")
+NUM_CLASSES = 1
 
 # Size, in inches, of the output images.
 IMAGE_SIZE = (12, 8) #Not necessary?
 
+class TLClassifierHSV(object):
+    def __init__(self):
+        #TODO load classifier
+        self.RED_MIN = np.array([0, 180, 180], np.uint8)
+        self.RED_MAX = np.array([10, 255, 255], np.uint8)
+        self.THRESHOLD = 30
+
+    def get_classification(self, image):
+        """Determines the color of the traffic light in the image
+
+        Args:
+            image (cv::Mat): image containing the traffic light
+
+        Returns:
+            int: ID of traffic light color (specified in styx_msgs/TrafficLight)
+
+        """
+        #TODO implement light color prediction
+        # convert image to HSV
+        img_bgr = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
+        img_hsv = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2HSV)
+        frame_threshed = cv2.inRange(img_hsv, self.RED_MIN, self.RED_MAX)
+        count = cv2.countNonZero(frame_threshed)
+        if  (count > self.THRESHOLD):
+            return  TrafficLight.RED
+        else:
+            return  TrafficLight.UNKNOWN
+
 class TLClassifier(object):
     def __init__(self):
-        # load dem graph
-        # TODO: is there something we should save to self?
+        # Used for cross validating NN predictions against ground truth,
+        # as HSV is really good in predicting traffic light colours in
+        # simulator colorspace.
+        # self.hsv_validator = TLClassifierHSV()
 
         self.detection_graph = tf.Graph()
         with self.detection_graph.as_default():
@@ -61,7 +86,7 @@ class TLClassifier(object):
             int: ID of traffic light color (specified in styx_msgs/TrafficLight)
 
         """
-        state = TrafficLight.UNKNOWN #default to unknown 
+        state = TrafficLight.UNKNOWN #default to unknown
         with self.detection_graph.as_default():
             with tf.Session(graph=self.detection_graph) as sess:
                 # Definite input and output Tensors for self.detection_graph
@@ -76,7 +101,7 @@ class TLClassifier(object):
 
                 # the array based representation of the image will be used later in order to prepare the
                 # result image with boxes and labels on it.
-		# image fromcv2 format already in numpy ndarray
+        		# image fromcv2 format already in numpy ndarray
                 image_np = image
                 # Expand dimensions since the model expects images to have shape: [1, None, None, 3]
                 image_np_expanded = np.expand_dims(image_np, axis=0)
@@ -84,7 +109,8 @@ class TLClassifier(object):
                 (boxes, scores, classes, num) = sess.run(
                      [detection_boxes, detection_scores, detection_classes, num_detections],
                      feed_dict={image_tensor: image_np_expanded})
-                if max(scores[0]) > 0.5:
+                rospy.logerr("max score: {}".format(max(scores[0])))
+                if max(scores[0]) > 0.6:
                       state = TrafficLight.RED #return state?
                 #     # Visualization of the results of a detection.
                 #     vis_util.visualize_boxes_and_labels_on_image_array(
@@ -98,7 +124,8 @@ class TLClassifier(object):
                 #     plt.figure(figsize=IMAGE_SIZE)
                 #     plt.imshow(image_np)
 
-        # TODO: return dem labels
-        #rospy.logerr("BAAAACOOOOOONNNNN!!!!!")
+        # val_state = self.hsv_validator.get_classification(image)
+        # rospy.logerr("HSV CV: {}".format(val_state == state))
+
         return state
 

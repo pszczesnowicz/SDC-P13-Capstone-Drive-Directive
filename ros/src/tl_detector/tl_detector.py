@@ -6,13 +6,13 @@ from styx_msgs.msg import TrafficLightArray, TrafficLight
 from styx_msgs.msg import Lane
 from sensor_msgs.msg import Image
 from cv_bridge import CvBridge
-from light_classification.tl_classifier import TLClassifier
+from light_classification.tl_classifier_ml import TLClassifier
 
 import tf
 import cv2
 import yaml
 
-STATE_COUNT_THRESHOLD = 3
+STATE_COUNT_THRESHOLD = 2
 
 
 # TODO: these functions should be reused between nodes
@@ -134,10 +134,13 @@ class TLDetector(object):
             self.prev_light_loc = None
             return False
 
-        cv_image = self.bridge.imgmsg_to_cv2(self.camera_image, "bgr8")
+        cv_image = self.bridge.imgmsg_to_cv2(self.camera_image, "rgb8")
 
-        # Get classification
-        return self.light_classifier.get_classification(cv_image)
+        #Get classification
+        if self.light_classifier == None:
+            return TrafficLight.RED
+        else:
+            return self.light_classifier.get_classification(cv_image)
 
     def process_traffic_lights(self):
         """Finds closest visible traffic light, if one exists, and determines its
@@ -166,14 +169,11 @@ class TLDetector(object):
             idx = stop_line_positions_dists.index(min(stop_line_positions_dists))
 
         if idx >= 0:
-            state = self.get_light_state()
-            light_wp = get_closest_waypoint(self.stop_lines[idx].position, self.waypoints)
-            # rospy.loginfo("approaching light state: {} in {}".format(state, stop_line_positions_dists[idx]))
-            # rospy.loginfo("light_wp number {}, current wp {}".format(light_wp, car_position))
-            return light_wp, state
+        	state = self.get_light_state()
+        	light_wp = get_closest_waypoint(self.stop_lines[idx].position, self.waypoints)
+        	return light_wp, state
         else:
-            return -1, TrafficLight.UNKNOWN
-
+        	return -1, TrafficLight.UNKNOWN
 
 if __name__ == '__main__':
     try:
