@@ -6,7 +6,7 @@ from styx_msgs.msg import TrafficLightArray, TrafficLight
 from styx_msgs.msg import Lane
 from sensor_msgs.msg import Image
 from cv_bridge import CvBridge
-from light_classification.tl_classifier import TLClassifier
+from light_classification.tl_classifier_ml import TLClassifier
 
 import tf
 import cv2
@@ -132,10 +132,13 @@ class TLDetector(object):
              self.prev_light_loc = None
              return False
 
-        cv_image = self.bridge.imgmsg_to_cv2(self.camera_image, "bgr8")
+        cv_image = self.bridge.imgmsg_to_cv2(self.camera_image, "rgb8")
 
         #Get classification
-        return self.light_classifier.get_classification(cv_image)
+        if self.light_classifier == None:
+            return TrafficLight.RED
+        else:
+            return self.light_classifier.get_classification(cv_image)
 
     def process_traffic_lights(self):
         """Finds closest visible traffic light, if one exists, and determines its
@@ -149,10 +152,10 @@ class TLDetector(object):
 
         # TODO: classification should not be performed as part of image_cb, because it
         # has delays. Wrap this into a Rate object later on.
-	# probably we can limit to process image only within certain distance of a light
+    	# probably we can limit to process image only within certain distance of a light
 
         light_wp = -1
-	idx = -1
+        idx = -1
 
         # List of positions that correspond to the line to stop in front of for a given intersection
         if (self.pose):
@@ -166,10 +169,8 @@ class TLDetector(object):
         if idx >= 0:
         	state = self.get_light_state()
         	light_wp = get_closest_waypoint(self.stop_lines[idx].position, self.waypoints)
-        	# rospy.loginfo("approaching light state: {} in {}".format(state, stop_line_positions_dists[idx]))
-        	# rospy.loginfo("light_wp number {}, current wp {}".format(light_wp, car_position))
         	return light_wp, state
-	else:
+        else:
         	return -1, TrafficLight.UNKNOWN
 
 if __name__ == '__main__':
