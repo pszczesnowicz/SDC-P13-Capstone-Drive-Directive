@@ -16,7 +16,7 @@ from io import StringIO
 from os.path import dirname, abspath
 from matplotlib import pyplot as plt
 from PIL import Image
-# TODO: provide utils module!!! pow pow pow
+import time
 from utils import label_map_util
 from utils import visualization_utils as vis_util
 
@@ -61,7 +61,7 @@ class TLClassifier(object):
         # Used for cross validating NN predictions against ground truth,
         # as HSV is really good in predicting traffic light colours in
         # simulator colorspace.
-        # self.hsv_validator = TLClassifierHSV()
+        self.hsv_validator = TLClassifierHSV()
 
         self.detection_graph = tf.Graph()
         with self.detection_graph.as_default():
@@ -124,8 +124,11 @@ class TLClassifier(object):
                 #     plt.figure(figsize=IMAGE_SIZE)
                 #     plt.imshow(image_np)
 
-        # val_state = self.hsv_validator.get_classification(image)
-        # rospy.logerr("HSV CV: {}".format(val_state == state))
+        val_state = self.hsv_validator.get_classification(image)
+        if val_state != state:
+            image_bgr = cv2.cvtColor(image, cv2.COLOR_RGB2BGR) # cv2 needs that to save rgb actually
+            cv2.imwrite("mismatch_img/{}.jpg".format(int(time.time())), image_bgr)
+            rospy.logerr("hsv mismatch... exporting image")
 
         return state
 
