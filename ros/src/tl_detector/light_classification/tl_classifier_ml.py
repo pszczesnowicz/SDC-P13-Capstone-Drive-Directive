@@ -23,12 +23,7 @@ from utils import visualization_utils as vis_util
 PATH = os.path.dirname(os.path.realpath(__file__))
 PATH_TO_CKPT = os.path.join(PATH,"red_inference_graph/frozen_inference_graph.pb")
 PATH_TO_LABELS = os.path.join(PATH, "training/object-detection.pbtxt")
-NUM_CLASSES = 1 # y u no two classes but one? Christian: If class "RED" is detectet, stop the car at the tl?
-
-#Simulator ToDo: Get Images from Simulator
-#PATH_TO_TEST_IMAGES_DIR = 'test_images/red' #
-#TEST_IMAGE_PATHS = [os.path.join(PATH_TO_TEST_IMAGES_DIR, 'out000{}.png'.format(2*i)) for i in range(24, 26)]
-#image = Image.open(image_path)
+NUM_CLASSES = 1
 
 # Size, in inches, of the output images.
 IMAGE_SIZE = (12, 8) #Not necessary?
@@ -63,10 +58,10 @@ class TLClassifierHSV(object):
 
 class TLClassifier(object):
     def __init__(self):
-        # load dem graph
-        # TODO: is there something we should save to self?
-
-        self.hsv_validator = TLClassifierHSV()
+        # Used for cross validating NN predictions against ground truth,
+        # as HSV is really good in predicting traffic light colours in
+        # simulator colorspace.
+        # self.hsv_validator = TLClassifierHSV()
 
         self.detection_graph = tf.Graph()
         with self.detection_graph.as_default():
@@ -115,7 +110,7 @@ class TLClassifier(object):
                      [detection_boxes, detection_scores, detection_classes, num_detections],
                      feed_dict={image_tensor: image_np_expanded})
                 rospy.logerr("max score: {}".format(max(scores[0])))
-                if max(scores[0]) > 0.5:
+                if max(scores[0]) > 0.6:
                       state = TrafficLight.RED #return state?
                 #     # Visualization of the results of a detection.
                 #     vis_util.visualize_boxes_and_labels_on_image_array(
@@ -129,11 +124,8 @@ class TLClassifier(object):
                 #     plt.figure(figsize=IMAGE_SIZE)
                 #     plt.imshow(image_np)
 
-        # TODO: return dem labels
-        #rospy.logerr("BAAAACOOOOOONNNNN!!!!!")
-
-        val_state = self.hsv_validator.get_classification(image)
-        rospy.logerr("HSV CV: {}".format(val_state == state))
+        # val_state = self.hsv_validator.get_classification(image)
+        # rospy.logerr("HSV CV: {}".format(val_state == state))
 
         return state
 
